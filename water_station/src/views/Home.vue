@@ -314,7 +314,7 @@ export default {
           document.getElementById('city').textContent = city
           document.getElementById('name').textContent = waterStation
           document.getElementById('time').textContent = time
-          document.getElementById('loc').textContent = String(loc)
+          document.getElementById('loc').textContent = address
           document.getElementById('level').textContent = waterCategory
         });
         this.map.on('mouseleave', 'station-poi', ()=>{
