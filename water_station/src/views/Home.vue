@@ -156,7 +156,7 @@ export default {
           'type': 'symbol',
           'source': 'station-info',
           'layout': {
-            'text-field': '{water_category}',
+            'text-field': '{station_name}',
             'text-font': [
               'Open Sans Bold',
               'Arial Unicode MS Bold'
@@ -309,11 +309,12 @@ export default {
           const city = feature.properties.city_area;
           const time = feature.properties.monitoring_time;
           const address = feature.properties.address;
+          const loc = feature.geometry.coordinates;
           document.getElementById('pro').textContent = province
           document.getElementById('city').textContent = city
           document.getElementById('name').textContent = waterStation
           document.getElementById('time').textContent = time
-          document.getElementById('loc').textContent = address
+          document.getElementById('loc').textContent = String(loc)
           document.getElementById('level').textContent = waterCategory
         });
         this.map.on('mouseleave', 'station-poi', ()=>{
