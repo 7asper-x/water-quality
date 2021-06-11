@@ -156,7 +156,7 @@ export default {
           'type': 'symbol',
           'source': 'station-info',
           'layout': {
-            'text-field': '{station_name}',
+            'text-field': '{water_category}',
             'text-font': [
               'Open Sans Bold',
               'Arial Unicode MS Bold'
