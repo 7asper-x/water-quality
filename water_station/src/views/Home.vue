@@ -63,8 +63,8 @@ export default {
     mapboxgl.accessToken = 'pk.eyJ1IjoiN2FzcGVyIiwiYSI6ImNrOGd6Mm16ODAwNGEzZ21kMGZodnJxbzIifQ.-0nYA6gFnhnS9_Ep3S7XZg';
     this.map = new mapboxgl.Map({
       container: 'map', // container id 绑定的组件的id
-      style: 'mapbox://styles/7asper/ckp54h9x70qaj17phz7qukhae', //地图样式，可以使用官网预定义的样式,也可以自定义
-      center: [107.682223, 34.658567], // 初始坐标系，这个是南京建邺附近
+      style: 'mapbox://styles/mapbox/satellite-streets-v11', //地图样式，可以使用官网预定义的样式,也可以自定义 mapbox://styles/7asper/ckp54h9x70qaj17phz7qukhae
+      center: [107.682223, 34.658567], // 初始坐标系
       zoom: 3,     // starting zoom 地图初始的拉伸比例
       // pitch: 60,  //地图的角度，不写默认是0，取值是0-60度，一般在3D中使用
       // bearing: -17.6, //地图的初始方向，值是北的逆时针度数，默认是0，即是正北
@@ -113,6 +113,34 @@ export default {
       //
       //   })
       // }
+
+      if(!this.map.getSource('mapbox-dem')){
+        this.map.addSource('mapbox-dem', {
+          'type': 'raster-dem',
+          'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+          'tileSize': 512,
+          'maxzoom': 14
+        });
+        this.map.setFog({
+          'range': [1.0, 2.0],
+          'color': 'white',
+          'horizon-blend': 0.1
+        });
+        this.map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 2 });
+      }
+
+      if(!this.map.getLayer('sky')){
+        this.map.addLayer({
+          'id': 'sky',
+          'type': 'sky',
+          'paint': {
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [0.0, 0.0],
+            'sky-atmosphere-sun-intensity': 15
+          }
+        });
+      }
+
       if(!this.map.getSource('station-info')){
         this.map.addSource('station-info', {
         'type': 'geojson',
