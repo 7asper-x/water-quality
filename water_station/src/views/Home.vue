@@ -176,7 +176,7 @@ export default {
           const queryApi = client.getQueryApi(org)
           const fluxQuery =
             `from(bucket:"test")
-            |> range(start: -17d)
+            |> range(start: -30d)
             |> filter(fn: (r) => r._measurement == "water-qual")
             |> filter(fn: (r) => r["StationName"] == "${feature.properties.station_name}")
             |> filter(fn: (r) => r["_field"] == "WaterCategory")
