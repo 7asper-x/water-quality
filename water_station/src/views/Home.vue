@@ -11,6 +11,7 @@
       <div><strong>Time:</strong> <span id="time"></span></div>
       <div><strong>Address:</strong> <span id="loc"></span></div>
       <div><strong>Water Quality:</strong> <span id="level"></span></div>
+      <div><strong>Area:</strong> <span id="area"></span></div>
     </div>
     <div id="chart1"></div>
     <div class="color">
@@ -28,6 +29,8 @@
 <script>
 import axios from "axios";
 import * as echarts from 'echarts';
+import * as turf from '@turf/turf';
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
 // axios.defaults.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
 const mapboxgl = require('mapbox-gl');
 const {InfluxDB} = require('@influxdata/influxdb-client')
@@ -70,6 +73,14 @@ export default {
       // bearing: -17.6, //地图的初始方向，值是北的逆时针度数，默认是0，即是正北
       antialias: true, //抗锯齿，通过false关闭提升性能
     });
+    this.draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
+      },
+      defaultMode: 'draw_polygon'
+    });
     this.map.addControl(new mapboxgl.NavigationControl({showZoom: false,visualizePitch:true}),'bottom-right');
 
     this.map.addControl(
@@ -82,6 +93,10 @@ export default {
         mapboxgl: mapboxgl
       })
     );
+    this.map.addControl(this.draw);
+    this.map.on('draw.create', this.updateArea);
+    this.map.on('draw.delete', this.updateArea);
+    this.map.on('draw.update', this.updateArea);
 
     this.map.on('styledata', ()=>{
       this.setMapboxLayer();
@@ -90,30 +105,16 @@ export default {
     });
   },
   methods: {
+    updateArea() {
+      var data = this.draw.getAll();
+      if (data.features.length > 0) {
+        var area = turf.area(data);
+        document.getElementById('area').textContent = String((Math.round(area * 100) / 100) / Math.pow(10, 6)) + 'km²';
+      } else {
+        document.getElementById('area').textContent = 'Use the draw tools to draw a polygon!'
+      }
+    },
     setMapboxLayer(){
-      // if(!this.map.getSource('city-boundary')){
-      //   this.map.addSource('city-boundary', {
-      //     'type': 'geojson',
-      //     'data': `/users/static/street_boundary/${this.city}.json`,
-      //   })
-      // }
-      // if(!this.map.getLayer('boundary')) {
-      //   this.map.addLayer({
-      //     'id':'boundary',
-      //     'type':"line",
-      //     'source': 'city-boundary',
-      //     'layout':{
-      //       'line-join':'bevel',
-      //       'line-cap':'butt',
-      //     },
-      //     'paint': {
-      //       'line-width':2,
-      //       'line-color':'#cdff61',
-      //       'line-dasharray': [5, 1],
-      //     }
-      //
-      //   })
-      // }
 
       if(!this.map.getSource('mapbox-dem')){
         this.map.addSource('mapbox-dem', {
@@ -371,6 +372,8 @@ export default {
     //   })
     // },
     coordinatesGeocoder(query) {
+      const client = new InfluxDB({url: 'http://58.23.17.121:8086', token: token})
+      const queryApi = client.getQueryApi(org)
       var hoveredStateId = null
       const city_matches = query.match(
         /[\u2E80-\u2EFF\u2F00-\u2FDF\u3000-\u303F\u31C0-\u31EF\u3200-\u32FF\u3300-\u33FF\u3400-\u4DBF\u4DC0-\u4DFF\u4E00-\u9FBF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]+/g
@@ -378,6 +381,34 @@ export default {
       if (!city_matches) {
         return null;
       }
+      var water_category = [];
+      const fluxQuery =
+        `from(bucket: "test")
+            |> range(start: -30d)
+            |> filter(fn: (r) => r["_measurement"] == "water-qual")
+            |> filter(fn: (r) => r["City"] == "${city_matches}")
+            |> filter(fn: (r) => r["_field"] == "WaterCategory")
+            |> group(columns: ["City"])
+            |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)`
+      queryApi.queryRows(fluxQuery, {
+        next(row, tableMeta) {
+          const o = tableMeta.toObject(row)
+          water_category.push(o._value)
+        },
+        error(error) {
+          console.error(error)
+          console.log('Finished ERROR')
+        },
+        complete() {
+          var sum =0
+          for(let i=0; i < water_category.length; i++){
+            sum=sum + water_category[i]
+          }
+          var mean = sum / water_category.length
+          console.log(Math.ceil(mean))
+          console.log('Finished SUCCESS')
+        }
+      })
       if(!this.map.getSource('city-boundary')){
         this.map.addSource('city-boundary', {
           'type': 'geojson',
