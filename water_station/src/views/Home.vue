@@ -77,6 +77,7 @@ export default {
         accessToken: mapboxgl.accessToken,
         localGeocoder: this.coordinatesGeocoder,
         zoom: 10,
+        language: 'CN',
         placeholder: 'Enter Coordinates',
         mapboxgl: mapboxgl
       })
