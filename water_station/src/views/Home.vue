@@ -12,6 +12,9 @@
       <div><strong>Address:</strong> <span id="loc"></span></div>
       <div><strong>Water Quality:</strong> <span id="level"></span></div>
       <div><strong>Area:</strong> <span id="area"></span></div>
+      <div><strong>Monthly City Water Category:</strong> <span id="category"></span></div>
+      <div><strong>Selected Station Water PH Mean:</strong> <span id="selected"></span></div>
+      <div><strong>Stations Count:</strong> <span id="count"></span></div>
     </div>
     <div id="chart1"></div>
     <div class="color">
@@ -94,24 +97,36 @@ export default {
       })
     );
     this.map.addControl(this.draw);
-    this.map.on('draw.create', this.updateArea);
-    this.map.on('draw.delete', this.updateArea);
-    this.map.on('draw.update', this.updateArea);
-
     this.map.on('styledata', ()=>{
       this.setMapboxLayer();
       this.getWaterQuality();
       // this.getStaticData();
     });
+    this.map.on('draw.create', this.updateArea);
+    this.map.on('draw.delete', this.updateArea);
+    this.map.on('draw.update', this.updateArea);
+
   },
   methods: {
     updateArea() {
       var data = this.draw.getAll();
       if (data.features.length > 0) {
         var area = turf.area(data);
+        var point_data = this.waterStationData?this.waterStationData:geojson_point
+        var ptsWithin = turf.pointsWithinPolygon(point_data, data);
+        var cate_list = 0
+        for(let i=0;i<ptsWithin.features.length;i++){
+          cate_list += parseFloat(ptsWithin.features[i].properties.PH)
+        }
+        console.log(cate_list)
+        var selected_mean = Math.round(cate_list / ptsWithin.features.length * 100) / 100
+        document.getElementById('selected').textContent = String(selected_mean)
+        document.getElementById('count').textContent = String(ptsWithin.features.length)
         document.getElementById('area').textContent = String((Math.round(area * 100) / 100) / Math.pow(10, 6)) + 'km²';
       } else {
         document.getElementById('area').textContent = 'Use the draw tools to draw a polygon!'
+        document.getElementById('selected').textContent = 'Use the draw tools to select stations!'
+        document.getElementById('count').textContent = 'Use the draw tools to select stations!'
       }
     },
     setMapboxLayer(){
@@ -404,8 +419,9 @@ export default {
           for(let i=0; i < water_category.length; i++){
             sum=sum + water_category[i]
           }
-          var mean = sum / water_category.length
-          console.log(Math.ceil(mean))
+          var mean = Math.ceil(sum / water_category.length)
+          document.getElementById('category').textContent = String(mean)
+          console.log(mean)
           console.log('Finished SUCCESS')
         }
       })
